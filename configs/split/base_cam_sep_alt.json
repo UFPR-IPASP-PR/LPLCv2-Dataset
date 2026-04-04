@@ -1,0 +1,28 @@
+{
+    "dataset_dir": "LPLCv2/lps/all_lps/",
+    "annotation_file": "LPLCv2/annotations.json",
+    "output_dir": "LPLCv2/folds/new_cameras/cam_sep/",
+    "augmented_dir": null,
+    "aug_remove_test_instances": true,
+    "do_shuffle": true,
+    "n_folds": 5,
+    "train_size": 2,
+    "cross_fold": true,
+    "gen_sym_links": true,
+    "sym_link_dir": "sldir/cam_sep/",
+    "load_folds": true,
+    "sub_dir": "scen0",
+    "class_config": {
+        "class_names": ["Illegible", "Poor", "Good", "Perfect"],
+        "all_classes": ["0", "1", "2", "3"],
+        "exclude_classes": [],
+        "class_dct": {
+            "0": ["0"],
+            "1": ["1"],
+            "2": ["2"],
+            "3": ["3"]
+        },
+        "sldir": "sldir_alt/cam_sep",
+        "scen": "scen0"
+    }    
+}

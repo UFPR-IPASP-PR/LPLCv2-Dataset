@@ -1,0 +1,30 @@
+{
+    "use_gpu": 0,
+    "loss": "ce",
+    "optim": "adam",
+    "optim_config": {
+        "lr": 1e-4
+    },
+    "task": "classification",
+    "scheduler_config": {
+        "factor": 0.75,
+        "patience": 5,
+        "min_lr": 5e-06
+    },
+    "sampler": "custom",
+    "sampler_config": {
+        "static": false,
+        "static_shuffle": true
+    },
+    "batch_size": 16,
+    "shuffle": true,
+    "epochs": 1000,
+
+    "validate": true,
+    "do_es": true,
+    "patience": 20,
+    "es_metric": "val_acc",
+
+    "save_last": true,
+    "save_best": true
+}

@@ -1,0 +1,218 @@
+import argparse
+from glob import glob
+import json
+from pathlib import Path
+import matplotlib.pyplot as plt
+
+from models.models import (
+    create_yolo,
+    create_resnet,
+    create_vit,
+    create_baseline
+)
+
+from models.trainer import (
+    train_torch_model,
+    train_yolo,
+    test_torch_model,
+    test_yolo,
+    predict_torch_model,
+    predict_yolo
+)
+
+def main(cfg, model_cfg, train_cfg, test_cfg, torch_training,   # Overall configs
+         do_predict, partition, load_model, save_images,        # For gathering predictions
+         dts_config, dts_root, fold, run_name, n_features       # Per-run experiment variables
+    ):
+
+    with open(f"{dts_config}", "r") as fd:
+        dts = json.load(fd)
+        scen = Path(dts['class_config']['scen'])
+        if dts_root is None:
+            dataset = Path(dts['sym_link_dir']) / Path(dts['sub_dir']) / Path(fold)
+        else:
+            dataset = dataset
+        cls = dts['class_config']['class_names']
+
+    cfg['save_path'] = cfg['save_path'] / scen
+    cfg['data']['class_names'] = cls
+
+    if run_name is not None:
+        print(f"Starting run: {run_name}")
+        if cfg['model_name'] != 'yolo' or torch_training:
+            cfg['save_path'] = cfg['save_path'] / Path(run_name)
+        else:
+            cfg["name"] = run_name
+            if train_cfg is not None:
+                train_cfg['name'] = run_name
+    else:
+        print("Starting run")
+
+    tag = "path" if cfg['model_name'] != 'yolo' or torch_training else "dir"
+    if dataset is not None:
+        cfg['data'][tag] = dataset
+    print(f"Dataset partition: {cfg['data'][tag]}")
+    n_classes = len(cls)
+    cfg['n_classes'] = n_classes
+    print(f"This protocol has {n_classes} classes.")
+    print(f"Experiment configuration: ", cfg)
+
+    model_name = cfg['model_name']
+
+    if model_name == 'yolo':
+        model = create_yolo(cfg, n_classes, torch_training)
+    elif model_name == 'resnet':
+        model = create_resnet(cfg, n_classes)
+    elif model_name == 'vit':
+        model = create_vit(cfg, n_classes)
+    elif model_name == 'small':
+        cfg['model_cfg'] = model_cfg
+        cfg['n_features'] = n_features
+        cfg['n_classes'] = n_classes
+        model = create_baseline(cfg['model_cfg'], n_features, n_classes)
+    else:
+        print("Error -- model must be one of: yolo, resnet, vit, base, small. Got: ", model_name)
+        exit()
+
+    # Train
+    if train_cfg is not None:
+        if model_name == 'yolo' and not torch_training:
+            model, results = train_yolo(model, train_cfg, cfg['data'],
+                                        cfg['save_path'])
+        else:
+            model, results = train_torch_model(model, train_cfg, cfg['data'],
+                                               cfg['save_path'], cfg['log_config'])
+        if results is not None:
+            with open(Path(cfg['save_path']) / "train_results.json", "w") as fd:
+                json.dump(results, fd, indent=2)
+        else:
+            results = {}
+    else:
+        model = None
+        results = {}
+
+    # Test or Evaluate
+    if test_cfg is not None:
+        if model_name == 'yolo' and not torch_training:
+            test_results = test_yolo(model, test_cfg, cfg['data'], cfg, partition, load_model)
+            cfg['save_path'] = cfg['save_path'] / Path(cfg['name'])
+        else:
+            test_results = test_torch_model(model, test_cfg, cfg['data'], cfg, partition, load_model)
+        results.update(test_results)
+        print(json.dumps(results, indent=2))
+        with open(Path(cfg['save_path']) / "all_results.json", "w") as fd:
+            json.dump(results, fd, indent=2)
+        
+        plt.title(f"{scen} - {partition} C-Matrix")
+        plt.tight_layout()
+        plt.savefig(Path(cfg['save_path']) / f"test_{partition}_cm.png")
+        plt.clf()
+
+    # Test and get predictions
+    if do_predict:
+        if model_name == 'yolo' and not torch_training:
+            save = cfg['save_path'] / Path(cfg['name']) if save_images else None
+            predict_results = predict_yolo(model, cfg['data'], cfg, partition, load_model, save)
+            if test_cfg is None:
+                cfg['save_path'] = cfg['save_path'] / Path(cfg['name'])
+        else:
+            save = cfg['save_path'] if save_images else None
+            predict_results = predict_torch_model(model, dts, cfg['data'],
+                                                  cfg, partition, load_model, save)
+        print(predict_results['metrics'])
+        with open(Path(cfg['save_path']) / f"predict_results_{partition}.json", "w") as fd:
+            json.dump(predict_results, fd, indent=2)
+        
+        plt.title(f"{scen} - {partition} C-Matrix")
+        plt.tight_layout()
+        plt.savefig(Path(cfg['save_path']) / f"predict_{partition}_cm.png")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-c', '--config', default="configs/models/resnet50.json", type=str)
+    parser.add_argument('-mc', '--model_config', default=None, type=str)
+    parser.add_argument('-n', '--run_name', default=None, type=str)
+
+    parser.add_argument('-d', '--device', default='cuda:0', type=str)
+    parser.add_argument('-bs', '--batch_size', default=None, type=int)
+
+    #parser.add_argument('-t', '--train_config', default='configs/train/train_tt.json', type=str)
+    parser.add_argument('-t', '--train_config', default=None, type=str)
+    parser.add_argument('-v', '--test_config', default='configs/train/test_tt.json', type=str)
+    parser.add_argument('-tt', '--torch_training', default=False, action='store_true')
+    parser.add_argument('-a', '--album_config', default=None, type=str)
+
+    parser.add_argument('-p', '--do_predict', default=False, action='store_true')
+    parser.add_argument('-pt', '--partition', default="test", type=str)
+    parser.add_argument('-s', '--save_images', default=False, action='store_true')
+
+    parser.add_argument('-dt', '--dataset_config', default='configs/split/base_old.json', type=str)
+    parser.add_argument('-dr', '--dataset_root', default=None, type=str)
+    parser.add_argument('-f', '--fold', default='0_1', type=str)
+    parser.add_argument('-m', '--load_model', default=None, type=str)
+    parser.add_argument('-nf', '--n_features', default=None, type=int)
+
+    clargs = vars(parser.parse_args())
+
+    config = clargs['config']
+    with open(config, "r") as fd:
+        cfg = json.load(fd)
+    cfg['data']['transform_config'] = clargs['album_config']
+    
+    if clargs['train_config'] is None:
+        if 'train_config' in cfg.keys():
+            train_cfg = config['train_config']
+        else:
+            train_cfg = None
+    else:
+        with open(clargs['train_config'], "r") as fd:
+            train_cfg = json.load(fd)
+
+    if clargs['test_config'] is None:
+        if 'test_config' in cfg.keys():
+            test_cfg = config['test_config']
+        else:
+            test_cfg = None
+    else:
+        with open(clargs['test_config'], "r") as fd:
+            test_cfg = json.load(fd)
+
+    def update_cfgs(tr_cfg, te_cfg, clarg, cfg_name, arg_name):
+        if tr_cfg is not None:
+            tr_cfg[cfg_name] = clarg[arg_name]
+        if te_cfg is not None:
+            te_cfg[cfg_name] = clarg[arg_name]
+
+    if clargs['device'] is not None:
+        if len(clargs['device']) == 1:
+            clargs['device'] = f"cuda:{clargs['device']}"
+        update_cfgs(train_cfg, test_cfg, clargs,
+                        "use_gpu" if cfg['model_name'] != "yolo" or clargs['torch_training']
+                                  else "device", 'device')
+        cfg['use_gpu'] = clargs['device']
+
+    if clargs['batch_size'] is not None:
+        update_cfgs(train_cfg, test_cfg, clargs,
+                        "batch_size" if cfg['model_name'] != "yolo"
+                                     else "batch", 'batch_size')
+
+    args = {
+        'cfg': cfg,
+        'model_cfg': clargs['model_config'],
+        'train_cfg': train_cfg,
+        'test_cfg': test_cfg,
+
+        'do_predict': clargs['do_predict'],
+        'torch_training': clargs['torch_training'],
+        'partition': clargs['partition'],
+        'load_model': clargs['load_model'],
+        'dts_config': clargs['dataset_config'],
+        'dts_root': clargs['dataset_root'],
+        'fold': clargs['fold'],
+        'save_images': clargs['save_images'],
+        'run_name': clargs['run_name'],
+        'n_features': clargs['n_features']
+    }
+
+    main(**args)

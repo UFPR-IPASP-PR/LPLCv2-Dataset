@@ -1,0 +1,24 @@
+{
+    "model_name": "resnet",
+    "model_cfg": "resnet50",
+    "resnet_weights": "IMAGENET1K_V1",
+    "freeze": false,
+    "save_path": "saved/resnet50",
+
+    "log_config": {
+        "experiment_name": "training_logs",
+        "method": "epoch",
+        "steps": 1,
+        "loss_log": {
+            "metrics": ["train_loss", "val_loss"]
+        },
+        "metric_log": {
+            "metrics": ["train_acc", "train_micro_f1",
+                        "val_acc", "val_micro_f1"]
+        }
+    },
+    "data": {
+        "path": "sldir/scen0/0_1/",
+        "imgsz": [90, 180]
+    }
+}
