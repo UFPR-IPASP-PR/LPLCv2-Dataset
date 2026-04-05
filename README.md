@@ -171,7 +171,7 @@ All samples in the dataset can only be used by the applicant, and only for acade
   volume = {},
   number = {},
   pages = {1-6},
-  doi = {10.1109/SIBGRAPI67909.2025.11223367},
+  doi = {},
   issn = {2161-4407},
 }
 ```
