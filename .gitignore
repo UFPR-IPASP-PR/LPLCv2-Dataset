@@ -3,7 +3,7 @@
 .vscode/
 
 *.zip
-*.png
+./*.png
 
 LPRD_Dataset
 saved/
