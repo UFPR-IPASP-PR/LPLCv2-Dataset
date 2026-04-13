@@ -1,6 +1,6 @@
 # LPLCv2: An Expanded Dataset for Fine-Grained License Plate Legibility Classification
 
-The repository for the LPLCv2 Dataset. Features fine-grained annotations for LPs (rectangular box), LP OCR, vehicle data, legibility level, camera ID and various capture scenarios. LPLCv2 is an official extension of the LPLC dataset.
+The repository for the LPLCv2 Dataset. Features fine-grained annotations for LPs (rectangular box), LP OCR, vehicle data, legibility level, camera ID and various capture scenarios. LPLCv2 is an official extension of the LPLC dataset. [[PDF]](https://arxiv.org/abs/2604.08741)
 
 <p align='center'>
 <img src="./images/dataset_samples.png" width=100%>
@@ -171,7 +171,7 @@ All samples in the dataset can only be used by the applicant, and only for acade
   volume = {},
   number = {},
   pages = {1-6},
-  doi = {},
+  doi = {arXiv:2604.08741},
   issn = {2161-4407},
 }
 ```
