@@ -112,7 +112,7 @@ The updated benchmark is comprised of 37,099 images, with 41,487 license plates 
       Has Camera ID
     </td>
     <td align='center' style="border-right:4px solid black">
-      29,965
+      34,760
     </td>
     <td>
       Poor
