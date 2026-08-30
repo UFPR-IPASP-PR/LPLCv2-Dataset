@@ -165,7 +165,7 @@ All samples in the dataset can only be used by the applicant, and only for acade
 ```
 @article{wojcik2026lplcv2,
   title = {{LPLCv2}: An Expanded Dataset for Fine-Grained License Plate Legibility Classification},
-  author = {L. {Wojcik} and E. A. F. {Machoski} and and E. {Nascimento Jr.} and R. {Laroca} and D. {Menotti}},
+  author = {L. {Wojcik} and E. A. F. {Machoski} and E. {Nascimento Jr.} and R. {Laroca} and D. {Menotti}},
   year = {2026},
   journal = {International Joint Conference on Neural Networks (IJCNN)},
   volume = {},
